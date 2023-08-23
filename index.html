@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détection des trois couleurs dominantes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            max-width: 600px;
+        }
+
+        .color-display {
+            width: 100px;
+            height: 100px;
+            margin: 20px auto;
+            border-radius: 5px;
+        }
+
+        .color-display:nth-child(1) { background-color: var(--color1); }
+        .color-display:nth-child(2) { background-color: var(--color2); }
+        .color-display:nth-child(3) { background-color: var(--color3); }
+
+        .palettes {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .palette {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px;
+        }
+
+        .palette-title {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .palette-color {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            margin: 3px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        label {
+            display: block;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        label:hover {
+            background-color: #0056b3;
+        }
+
+        #colorLabel {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            margin: 20px auto;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Détection des trois couleurs dominantes</h1>
+        <input type="file" id="imageInput" accept="image/*">
+        <label for="imageInput">Sélectionner une image</label>
+        <img id="imagePreview" src="" alt="Image d'origine">
+        <div class="color-display"></div>
+        <div class="color-display"></div>
+        <div class="color-display"></div>
+        <p id="colorLabel"></p>
+        
+        <h2>Palettes de couleurs pour un site web :</h2>
+        <div class="palettes" id="palettes"></div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const colorDisplays = document.querySelectorAll('.color-display');
+        const colorLabel = document.getElementById('colorLabel');
+        const imagePreview = document.getElementById('imagePreview');
+        const palettesContainer = document.getElementById('palettes');
+
+        imageInput.addEventListener('change', handleImageUpload);
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const image = new Image();
+                    image.src = e.target.result;
+
+                    image.onload = function() {
+                        imagePreview.src = image.src;
+                        imagePreview.style.display = 'block';
+                        const dominantColors = getDominantColors(image);
+                        for (let i = 0; i < 3; i++) {
+                            colorDisplays[i].style.backgroundColor = dominantColors[i];
+                        }
+                        colorLabel.innerHTML = `Trois couleurs dominantes : <br>${dominantColors.join('<br>')}`;
+                        generatePalettes(dominantColors);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function getDominantColors(image) {
+            const canvas = document.createElement('canvas');
+            canvas.width = image.width;
+            canvas.height = image.height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            const colorCounts = {};
+
+            for (let i = 0; i < imageData.length; i += 4) {
+                const color = `rgb(${imageData[i]}, ${imageData[i + 1]}, ${imageData[i + 2]})`;
+                colorCounts[color] = (colorCounts[color] || 0) + 1;
+            }
+
+            const sortedColors = Object.keys(colorCounts).sort((a, b) => colorCounts[b] - colorCounts[a]);
+            return sortedColors.slice(0, 3);
+        }
+
+        function generatePalettes(colors) {
+            palettesContainer.innerHTML = '';
+
+            for (let i = 0; i < 3; i++) {
+                const palette = document.createElement('div');
+                palette.className = 'palette';
+
+                const title = document.createElement('div');
+                title.className = 'palette-title';
+                title.textContent = `Palette ${i + 1}`;
+                palette.appendChild(title);
+
+                const complementaryColors = generateComplementaryColors(colors[i]);
+                for (let j = 0; j < complementaryColors.length; j++) {
+                    const colorBox = document.createElement('div');
+                    colorBox.className = 'palette-color';
+                    colorBox.style.backgroundColor = complementaryColors[j];
+                    palette.appendChild(colorBox);
+                }
+
+                palettesContainer.appendChild(palette);
+            }
+        }
+
+        function generateComplementaryColors(color) {
+            // Cette fonction génère trois couleurs complémentaires à partir d'une couleur donnée,
+            // en assurant un bon contraste.
+            const complementaryColors = [];
+
+            // La couleur de base
+            complementaryColors.push(color);
+
+            // La couleur complémentaire
+            const complementaryColor = getComplementaryColor(color);
+            complementaryColors.push(complementaryColor);
+
+            // Une couleur foncée pour le texte
+            const darkTextColor = getDarkTextColor(color);
+            complementaryColors.push(darkTextColor);
+
+            return complementaryColors;
+        }
+
+        function getComplementaryColor(color) {
+            // Cette fonction génère une couleur complémentaire avec une luminance différente.
+            const luminance = calculateLuminance(color);
+            const targetLuminance = 128; // Luminance cible pour le contraste
+            const diff = targetLuminance - luminance;
+            const newColor = adjustLuminance(color, diff);
+            return newColor;
+        }
+
+        function getDarkTextColor(color) {
+            // Cette fonction génère une couleur de texte sombre ou claire en fonction de la luminance
+            // de la couleur de fond pour assurer un bon contraste.
+            const luminance = calculateLuminance(color);
+            return luminance > 128 ? '#000' : '#fff';
+        }
+
+        function calculateLuminance(color) {
+            // Cette fonction calcule la luminance d'une couleur en utilisant la formule relative de la luminance Y.
+            const parts = color.match(/\d+/g);
+            const r = parseInt(parts[0]);
+            const g = parseInt(parts[1]);
+            const b = parseInt(parts[2]);
+            return 0.299 * r + 0.587 * g + 0.114 * b;
+        }
+
+        function adjustLuminance(color, diff) {
+            // Cette fonction ajuste la luminance d'une couleur donnée.
+            const parts = color.match(/\d+/g);
+            let r = parseInt(parts[0]) + diff;
+            let g = parseInt(parts[1]) + diff;
+            let b = parseInt(parts[2]) + diff;
+            r = Math.min(255, Math.max(0, r));
+            g = Math.min(255, Math.max(0, g));
+            b = Math.min(255, Math.max(0, b));
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+    </script>
+</body>
+</html>

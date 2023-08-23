@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détection des trois couleurs dominantes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            max-width: 600px;
+        }
+
+        .color-display {
+            width: 100px;
+            height: 100px;
+            margin: 20px auto;
+            border-radius: 5px;
+        }
+
+        .color-display:nth-child(1) { background-color: var(--color1); }
+        .color-display:nth-child(2) { background-color: var(--color2); }
+        .color-display:nth-child(3) { background-color: var(--color3); }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        label {
+            display: block;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        label:hover {
+            background-color: #0056b3;
+        }
+
+        #colorLabel {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            margin: 20px auto;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Détection des trois couleurs dominantes</h1>
+        <input type="file" id="imageInput" accept="image/*">
+        <label for="imageInput">Sélectionner une image</label>
+        <img id="imagePreview" src="" alt="Image d'origine">
+        <div class="color-display"></div>
+        <div class="color-display"></div>
+        <div class="color-display"></div>
+        <p id="colorLabel"></p>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const colorDisplays = document.querySelectorAll('.color-display');
+        const colorLabel = document.getElementById('colorLabel');
+        const imagePreview = document.getElementById('imagePreview');
+
+        imageInput.addEventListener('change', handleImageUpload);
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const image = new Image();
+                    image.src = e.target.result;
+
+                    image.onload = function() {
+                        imagePreview.src = image.src;
+                        imagePreview.style.display = 'block';
+                        const dominantColors = getDominantColors(image);
+                        for (let i = 0; i < 3; i++) {
+                            colorDisplays[i].style.backgroundColor = dominantColors[i];
+                        }
+                        colorLabel.innerHTML = `Trois couleurs dominantes : <br>${dominantColors.join('<br>')}`;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function getDominantColors(image) {
+            const canvas = document.createElement('canvas');
+            canvas.width = image.width;
+            canvas.height = image.height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            const colorCounts = {};
+
+            for (let i = 0; i < imageData.length; i += 4) {
+                const color = `rgb(${imageData[i]}, ${imageData[i + 1]}, ${imageData[i + 2]})`;
+                colorCounts[color] = (colorCounts[color] || 0) + 1;
+            }
+
+            const sortedColors = Object.keys(colorCounts).sort((a, b) => colorCounts[b] - colorCounts[a]);
+            return sortedColors.slice(0, 3);
+        }
+    </script>
+</body>
+</html>
